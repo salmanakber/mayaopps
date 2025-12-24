@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { verify as verifyToken } from "@/lib/auth"
+import { verifyToken } from "@/lib/auth"
 import { type NextRequest, NextResponse } from "next/server"
 
 interface CoordinatePair {
@@ -23,7 +23,7 @@ function calculateDistance(coord1: CoordinatePair, coord2: CoordinatePair): numb
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verify(request)
+    const user = await verifyToken(request)
 
     const { taskId, cleanerLat, cleanerLng, companyId } = await request.json()
 
