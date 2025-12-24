@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const { tokenUser } = auth
     const role = tokenUser.role as UserRole
 
-    if (![UserRole.OWNER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
+    if (![UserRole.SUPER_ADMIN, UserRole.OWNER, UserRole.DEVELOPER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { tokenUser } = auth
     const role = tokenUser.role as UserRole
 
-    if (![UserRole.OWNER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
+    if (![UserRole.SUPER_ADMIN, UserRole.OWNER, UserRole.DEVELOPER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
