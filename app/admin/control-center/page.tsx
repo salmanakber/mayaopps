@@ -256,15 +256,7 @@ export default function AdminControlCenter() {
             />
         )}
 
-        {activeTab === "configurations" && (
-            <FeatureCard 
-                title="System Configuration"
-                description="Update global API keys, configure email templates, set maintenance modes, and manage system-wide feature flags."
-                icon={Settings}
-                href="/admin/control-center/configurations"
-                buttonText="Manage System Settings"
-            />
-        )}
+
 
         {activeTab === "audit" && (
             <FeatureCard 
