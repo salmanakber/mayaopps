@@ -1,12 +1,12 @@
-import { db } from "@/lib/db"
-import { verify } from "@/lib/auth"
+import prisma from '@lib/prisma';
+import {verifyToken } from "@/lib/auth"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verify(request)
+    const user = await verifyToken(request)
 
-    if (!["Owner", "Company Admin", "Manager"].includes(user.role)) {
+    if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
@@ -14,18 +14,15 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId")
     const limit = Number.parseInt(searchParams.get("limit") || "50")
 
-    const result = await db.query(
-      `SELECT id, user_id, title, message, type, status, created_at
-       FROM notifications
-       WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2`,
-      [userId || user.id, limit],
-    )
+    const result = await prisma.notification.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    })
 
     return NextResponse.json({
       success: true,
-      data: result.rows,
+      data: result,
     })
   } catch (error) {
     console.error("Error fetching notifications:", error)
@@ -35,27 +32,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verify(request)
+    const user = await verifyToken(request)
 
-    if (!["Owner", "Company Admin", "Manager"].includes(user.role)) {
+    if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
     const { userId, title, message, type } = await request.json()
 
-    const result = await db.query(
-      `INSERT INTO notifications (user_id, title, message, type, status, created_at)
-       VALUES ($1, $2, $3, $4, 'unread', NOW())
-       RETURNING *`,
-      [userId, title, message, type],
-    )
+    const result = await prisma.notification.create({
+      data: {
+        userId: Number(userId),
+        title: title,
+        message: message,
+        type: type,
+        status: "unread",
+      },
+    })
 
     // TODO: Send email notification based on user preferences
     // TODO: Trigger webhook for external notification services
 
     return NextResponse.json({
       success: true,
-      data: result.rows[0],
+      data: result,
     })
   } catch (error) {
     console.error("Error creating notification:", error)

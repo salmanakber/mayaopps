@@ -1,5 +1,5 @@
-import { db } from "@/lib/db"
-import { verify } from "@/lib/auth"
+import prisma from '@/lib/prisma';
+import { verify as verifyToken } from "@/lib/auth"
 import { type NextRequest, NextResponse } from "next/server"
 
 interface CoordinatePair {
@@ -28,27 +28,35 @@ export async function POST(request: NextRequest) {
     const { taskId, cleanerLat, cleanerLng, companyId } = await request.json()
 
     // Get task location
-    const taskResult = await db.query(
-      `SELECT p.latitude, p.longitude FROM tasks t
-       JOIN properties p ON t.property_id = p.id
-       WHERE t.id = $1`,
-      [taskId],
-    )
+    const taskResult = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        property: {
+          select: {
+            latitude: true,
+            longitude: true,
+          },
+        },
+      },
+    })
 
-    if (taskResult.rows.length === 0) {
+    if (!taskResult) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 })
     }
 
     // Get geofence radius from config
-    const configResult = await db.query(`SELECT geofence_radius FROM admin_configurations WHERE company_id = $1`, [
-      companyId,
-    ])
+    const configResult = await prisma.adminConfiguration.findUnique({
+      where: { companyId: companyId },
+      select: {
+        geofenceRadius: true,
+      },
+    })
 
-    const geofenceRadius = configResult.rows[0]?.geofence_radius || 150
+    const geofenceRadius = configResult?.geofenceRadius || 150
 
     const taskLocation: CoordinatePair = {
-      lat: taskResult.rows[0].latitude,
-      lng: taskResult.rows[0].longitude,
+      lat: taskResult.property.latitude,
+      lng: taskResult.property.longitude,
     }
     const cleanerLocation: CoordinatePair = { lat: cleanerLat, lng: cleanerLng }
 
@@ -56,11 +64,16 @@ export async function POST(request: NextRequest) {
     const isWithinGeofence = distance <= geofenceRadius
 
     // Log location check
-    await db.query(
-      `INSERT INTO location_logs (task_id, user_id, latitude, longitude, distance_from_property, within_geofence, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-      [taskId, user.id, cleanerLng, cleanerLat, distance, isWithinGeofence],
-    )
+    await prisma.locationLog.create({
+      data: {
+        taskId: taskId,
+        userId: user.id,
+        latitude: cleanerLat,
+        longitude: cleanerLng,
+        distanceFromProperty: distance,
+        withinGeofence: isWithinGeofence,
+      },
+    })
 
     return NextResponse.json({
       success: true,
@@ -76,22 +89,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verify(request)
+    const user = await verifyToken(request)
     const searchParams = request.nextUrl.searchParams
     const taskId = searchParams.get("taskId")
 
-    const result = await db.query(
-      `SELECT id, task_id, user_id, latitude, longitude, distance_from_property, within_geofence, created_at
-       FROM location_logs
-       WHERE task_id = $1
-       ORDER BY created_at DESC
-       LIMIT 50`,
-      [taskId],
-    )
+    const result = await prisma.locationLog.findMany({
+      where: { taskId: Number(taskId) },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })
 
     return NextResponse.json({
       success: true,
-      data: result.rows,
+      data: result,
     })
   } catch (error) {
     console.error("Error fetching location logs:", error)

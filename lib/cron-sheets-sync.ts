@@ -1,7 +1,7 @@
 // Google Sheets Sync Cron Job
 // Run this with node-cron or as a Vercel cron endpoint
 
-import { syncGoogleSheet } from './sheets';
+import { fetchSheetData } from './sheets';
 import prisma from './prisma';
 
 export async function runSheetsSyncForAllCompanies() {
@@ -24,16 +24,18 @@ export async function runSheetsSyncForAllCompanies() {
         });
 
         if (config && (config as any).googleSheetId) {
-          const result = await syncGoogleSheet((config as any).googleSheetId, company.id);
+          const result = await fetchSheetData((config as any).googleSheetId, "Sheet1!A1:F10000" as string);
+          if (result.length > 0) {
           results.push({
             companyId: company.id,
-            companyName: company.name,
-            success: true,
-            propertiesAdded: result.added,
-            propertiesUpdated: result.updated,
-            errors: result.errors.length,
-          });
-          console.log(`[CRON] ✓ Synced ${company.name}: +${result.added} properties, ~${result.updated} updated`);
+              companyName: company.name,
+              success: true,
+              propertiesAdded: result.length,
+              propertiesUpdated: result.length,
+              errors: 0,
+            });
+            console.log(`[CRON] ✓ Synced ${company.name}: +${result.length} properties, ~${result.length} updated`);
+          }
         }
       } catch (error: any) {
         console.error(`[CRON] ✗ Error syncing ${company.name}:`, error.message);

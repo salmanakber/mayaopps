@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { requireAuth, requireCompanyScope } from '@/lib/rbac';
-import { UserRole } from '@prisma/client';
+import db from '../../../../lib/db';
+import { requireAuth, requireCompanyScope } from '../../../../lib/rbac';
+import { UserRole } from '../../../../lib/prisma';
 
 // GET /api/admin/configurations - Get admin configuration
 export async function GET(request: NextRequest) {

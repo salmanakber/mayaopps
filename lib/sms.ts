@@ -1,6 +1,7 @@
 // SMS service using Twilio
 // Install: npm install twilio
 
+import twilio from 'twilio';
 interface SMSOptions {
   to: string;
   message: string;
