@@ -1,14 +1,16 @@
 import prisma from '@lib/prisma';
 import { requireAuth, requireCompanyScope } from '@/lib/rbac';
 import { type NextRequest, NextResponse } from "next/server"
+import { UserRole } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = requireAuth(request);
+    const auth = requireAuth(request); 
     if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    const { tokenUser } = auth;
+    const { tokenUser } = auth
+    const role = tokenUser.role as UserRole
 
-    if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
+    if (![UserRole.OWNER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
@@ -36,9 +38,10 @@ export async function POST(request: NextRequest) {
   try {
     const auth = requireAuth(request);
     if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    const { tokenUser } = auth;
+    const { tokenUser } = auth
+    const role = tokenUser.role as UserRole
 
-    if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
+    if (![UserRole.OWNER, UserRole.COMPANY_ADMIN, UserRole.MANAGER].includes(role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
     }
 
