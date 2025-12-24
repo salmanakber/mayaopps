@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { verifyToken } from "@/lib/auth"
+import { requireAuth, requireCompanyScope } from '@/lib/rbac';
 import { type NextRequest, NextResponse } from "next/server"
 
 interface CoordinatePair {
@@ -23,7 +23,9 @@ function calculateDistance(coord1: CoordinatePair, coord2: CoordinatePair): numb
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const auth = requireAuth(request);
+    if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    const { tokenUser } = auth;
 
     const { taskId, cleanerLat, cleanerLng, companyId } = await request.json()
 
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const user = await requireAuth(request)
     const searchParams = request.nextUrl.searchParams
     const taskId = searchParams.get("taskId")
 

@@ -1,10 +1,12 @@
 import prisma from '@lib/prisma';
-import {verifyToken } from "@/lib/auth"
+import { requireAuth, requireCompanyScope } from '@/lib/rbac';
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const auth = requireAuth(request);
+    if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    const { tokenUser } = auth;
 
     if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
@@ -32,7 +34,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const auth = requireAuth(request);
+    if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    const { tokenUser } = auth;
 
     if (!["OWNER", "COMPANY_ADMIN", "MANAGER"].includes(user.role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 })
