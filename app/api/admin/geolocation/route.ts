@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     await prisma.locationLog.create({
       data: {
         taskId: taskId,
-        userId: user.id,
+        userId: 0, // TODO: Add user ID
         latitude: cleanerLat,
         longitude: cleanerLng,
         distanceFromProperty: distance,
@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth(request)
+    const auth = requireAuth(request);
+    if (!auth) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    const { tokenUser } = auth;
     const searchParams = request.nextUrl.searchParams
     const taskId = searchParams.get("taskId")
 
